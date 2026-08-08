@@ -4,8 +4,11 @@ description: Method for building software. Use for any coding, refactoring or de
 ---
 
 The contract is the artifact. Everything else is input to it, a check on it, or a record of why it changed.
-A task enters at `P1 · SHAPE` and leaves through `P5 · RECORD`, passing five gates. `P7 · CONTEXT ECONOMY` applies at every phase, not at one point in the sequence.
+
+A task enters at `P1 · SHAPE` and leaves through `P5 · RECORD`, passing five gates, then re-enters as a sweep. `P7 · CONTEXT ECONOMY` applies at every phase, not at one point in the sequence.
+
 ## Gates
+
 | Gate | Holds when |
 |---|---|
 | `one task in flight` | No second plan is live. Finish or abandon before starting. |
@@ -13,18 +16,42 @@ A task enters at `P1 · SHAPE` and leaves through `P5 · RECORD`, passing five g
 | `verifier has not read the implementation` | The checking agent works from the contract in a separate context with no shared history. A verifier that has seen the code inherits its assumptions. |
 | `change closes net-negative, or states why not` | Superseded paths are unreachable and gone. Growth needs a reason on the record. |
 | `contract satisfied and recorded` | Properties hold, and the commit message carries the reason the contract changed. |
+
 ## Traversal
+
 Walk each phase head to tail. Dotted edges are backreferences and the label is the condition that fires them — take them and re-walk from where you land. `P8 · STANDING TENSIONS` is dashed: those anchors are costs this method accepts, not problems it solves. When one fires, take a local exception and record the reason rather than reversing the method.
+
+## Iteration
+
+`contract satisfied and recorded` is not the end. It opens a sweep: every phase re-entered against the whole artifact rather than the one task. A sweep fires a backreference for each of — a gate reopened, a property falsified, a budget above its known floor, the artifact grew, context spend per unit of change rose, a tension fired. Each routes to the phase that owns it. Take them all, then sweep again.
+
+Two terminals, and only two.
+
+**Fixed point.** A sweep changes nothing: no gate reopens, no counterexample survives, no measure moves. Stop. This is the operational meaning of done — a least fixed point of the sweep, not a proof of correctness. Lower bounds are part of it: where a cost already sits at its information-theoretic or algorithmic floor, further work is not improvement.
+
+**Surface.** The variant — the count of open conditions — failed to decrease, or one condition fired twice with no new information. Stop and hand the ambiguity to a person. Do not sweep again. A loop that cannot show a decreasing measure does not terminate, and iterating it converts a decision problem into wasted budget.
+
+Two results bound the loop and appear in `P9` as nodes rather than caveats. Rice: no analyser decides an arbitrary semantic property, so a sweep confirms the absence of *found* defects, never their absence. Lehman: an in-use system faces a changing environment, so a fixed point is provisional — it holds until the environment moves, then `P1` reopens.
+
+Monotonicity is enforced, not assumed. A sweep may not trade a fixed condition for a new one; every measure that improved must stay improved.
+
 ## Graph
+
 ```mermaid
 flowchart TB
+
 %% solid = forward step   dotted = backreference, label is the condition that triggers it
 %% diamond = gate: a condition that must hold before the phase advances
+
   G_START{"one task in flight"}
   G_CONTRACT{"contract is the only durable description"}
   G_INDEP{"verifier has not read the implementation"}
   G_NET{"change closes net-negative, or states why not"}
   G_DONE{"contract satisfied and recorded"}
+  G_SWEEP{"full sweep, all phases"}
+  G_FIXPOINT{"sweep changed nothing"}
+  G_SURFACE{"variant did not decrease"}
+
   subgraph P1["P1 · SHAPE"]
     direction TB
     JTBD["Jobs To Be Done — Clayton Christensen"]
@@ -38,6 +65,7 @@ flowchart TB
     JTBD --> XYPROB --> EARS --> INVEST --> THINSLICE
     THINSLICE --> SPIKE --> YAGNI --> LIVEPLAN
   end
+
   subgraph P2["P2 · CONTRACT"]
     direction TB
     UBIQ["Ubiquitous Language — Eric Evans"]
@@ -56,6 +84,7 @@ flowchart TB
     WADLER --> DBC --> CQS --> PARNAS --> DEEPMOD --> ACCEPTPORT
     CLEANNAME --> COMMENTSMELL
   end
+
   subgraph P3["P3 · BUILD"]
     direction TB
     TOTALITY["Total Functional Programming — David Turner"]
@@ -69,6 +98,7 @@ flowchart TB
     TOTALITY --> GUARD --> SLAP --> STRUCTPROG
     STRUCTPROG --> IMMUT --> OWNERSHIP --> DRY --> KISS
   end
+
   subgraph P4["P4 · VERIFY"]
     direction TB
     DIJKSTRATEST["Testing Shows Presence, Never Absence — Edsger Dijkstra"]
@@ -90,6 +120,7 @@ flowchart TB
     FUZZ --> CONTRACTTEST --> CHARTEST
     AGENTQA --> LLMJUDGE --> SANITIZE
   end
+
   subgraph P5["P5 · RECORD"]
     direction TB
     CONVCOM["Conventional Commits"]
@@ -103,6 +134,7 @@ flowchart TB
     CONVCOM --> RULE5072 --> WHYNOTWHAT --> GITSTATE --> BLAME --> BISECT
     BISECT --> SEMVER --> ADRN
   end
+
   subgraph P6["P6 · PRESSURE"]
     direction TB
     NODELETE["Agents Avoid Deleting Code — Ebrahimi et al."]
@@ -120,6 +152,7 @@ flowchart TB
     SLOPDRIFT --> DELETIONGATE --> REACHABLE --> DIFFBUDGET
     TARPIT --> LEANSW --> KOLMOGOROV
   end
+
   subgraph P7["P7 · CONTEXT ECONOMY"]
     direction TB
     SMALLESTSET["The Smallest Set of High-Signal Tokens"]
@@ -141,6 +174,7 @@ flowchart TB
     NODUPEDOC --> SUBAGENT --> COMPACT --> OBSCOMPRESS --> MEMTOOL
     MEMTOOL --> STABLEPREFIX --> TOOLBUDGET --> GREPFIRST
   end
+
   subgraph P8["P8 · STANDING TENSIONS"]
     direction TB
     OUSTERHOUTC["Comments Capture What Code Cannot — John Ousterhout"]
@@ -155,6 +189,24 @@ flowchart TB
     HYRUM --> REGEVIDENCE --> MAINTCOST
     SPECDRIFT --> CTXEXPLODE
   end
+
+  subgraph P9["P9 · CONVERGENCE"]
+    direction TB
+    FIXPOINT["Least Fixed Point — Kleene and Tarski"]
+    MONOTONE["Monotonic Improvement Only"]
+    REGRESSGUARD["No Regression Across Sweeps"]
+    VARIANT["Well-Founded Variant — Robert Floyd"]
+    BOUNDEDRETRY["Bounded Retry, Then Surface"]
+    RICE["Rice's Theorem — Henry Gordon Rice"]
+    HALTING["Halting Problem — Alan Turing"]
+    LEHMAN["Lehman's Laws of Software Evolution — Meir Lehman"]
+    KNUTHOPT["Premature Optimization — Donald Knuth"]
+    LOWERBOUND["Lower Bound Reached — information-theoretic argument"]
+    FIXPOINT --> MONOTONE --> REGRESSGUARD --> VARIANT --> BOUNDEDRETRY
+    RICE --> HALTING --> LEHMAN
+    KNUTHOPT --> LOWERBOUND
+  end
+
   %% ===== SPINE =====
   G_START --> JTBD
   LIVEPLAN --> G_CONTRACT --> UBIQ
@@ -162,8 +214,23 @@ flowchart TB
   KISS --> G_INDEP --> DIJKSTRATEST
   SANITIZE --> G_NET --> NODELETE
   DIFFBUDGET --> CONVCOM
-  ADRN --> G_DONE
+  ADRN --> G_DONE --> G_SWEEP
   SMALLESTSET -.-> G_START
+
+  %% ===== ITERATION LOOP =====
+  G_SWEEP --> FIXPOINT
+  FIXPOINT --> G_FIXPOINT
+  G_SWEEP -.->|"a gate reopened"| G_START
+  G_SWEEP -.->|"a property was falsified"| G_INDEP
+  G_SWEEP -.->|"a budget sits above its floor"| KNUTHOPT
+  G_SWEEP -.->|"the artifact grew"| G_NET
+  G_SWEEP -.->|"context spend rose per unit of change"| SMALLESTSET
+  G_SWEEP -.->|"a tension fired"| OUSTERHOUTC
+  G_FIXPOINT -.->|"no gate reopened, no counterexample, no growth"| LOWERBOUND
+  G_FIXPOINT -.->|"a later sweep reopened a gate"| G_SWEEP
+  VARIANT --> G_SURFACE
+  BOUNDEDRETRY --> G_SURFACE
+
   %% ===== CROSS-PHASE =====
   KOLMOGOROV --> PARNAS
   DBC --> INDEPVER
@@ -172,6 +239,7 @@ flowchart TB
   WHYNOTWHAT --> BLAME
   MAINTCOST --> DELETIONGATE
   PROGDISC --> AGENTQA
+
   %% ===== BACKREFERENCES =====
   XYPROB -.->|"the stated problem is not the real one"| JTBD
   EARS -.->|"the requirement is not falsifiable"| DBC
@@ -258,12 +326,28 @@ flowchart TB
   SPECDRIFT -.->|"two descriptions disagree"| G_CONTRACT
   CTXEXPLODE -.->|"the agent must read the whole repository"| PROGDISC
   G_DONE -.->|"the contract is not satisfied"| G_INDEP
+  FIXPOINT -.->|"the sweep produced a change"| MONOTONE
+  MONOTONE -.->|"a measure moved the wrong way"| REGRESSGUARD
+  REGRESSGUARD -.->|"an earlier sweep's gain was lost"| INVARIANTRUN
+  VARIANT -.->|"the open-condition count did not fall"| BOUNDEDRETRY
+  BOUNDEDRETRY -.->|"the same condition fired twice with no new information"| G_SURFACE
+  RICE -.->|"no analyser decides the property"| BOUNDEDRETRY
+  HALTING -.->|"no analyser decides termination of the sweep"| VARIANT
+  LEHMAN -.->|"the environment changed under a converged system"| G_START
+  KNUTHOPT -.->|"the profile contradicts the assumption"| G_SWEEP
+  LOWERBOUND -.->|"the bound is already reached, stop here"| G_FIXPOINT
+  G_SURFACE -.->|"the ambiguity is human-owned"| ADRN
+
   classDef gate stroke-width:3px
   classDef tension stroke-dasharray:5 3
-  class G_START,G_CONTRACT,G_INDEP,G_NET,G_DONE gate
+  classDef terminal stroke-width:4px,stroke-dasharray:2 2
+  class G_START,G_CONTRACT,G_INDEP,G_NET,G_DONE,G_SWEEP gate
   class OUSTERHOUTC,NAURTHEORY,TACIT,HYRUM,REGEVIDENCE,MAINTCOST,SPECDRIFT,CTXEXPLODE tension
+  class G_FIXPOINT,G_SURFACE terminal
 ```
+
 ## Context economy, by measured effect
+
 1. **Cut iteration, not output.** Review-and-rework outweighs initial generation in token spend. An independent verifier working from the contract is the largest single saving available.
 2. **Progressive disclosure.** Header at session start, body on trigger.
 3. **Subagent isolation.** Repo reads, search and logs return compressed; the main thread keeps depth.
@@ -271,4 +355,3 @@ flowchart TB
 5. **Grep before embeddings.** Error strings, paths and test names survive verbatim or not at all.
 6. **Stable prefix.** Invariant content first, variable content last.
 7. **Reference, never restate.** A duplicated description is paid for on every task.
-
